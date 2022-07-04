@@ -2,25 +2,43 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
-jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
-    docker:
-      - image: cimg/base:stable
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+command: 
+  destroy-environment: 
     steps:
-      - checkout
-      - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+      - run: 
+          name: Destroy Environment 
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:7}
+jobs:
+  create-cloudformation-stack:
+    docker: 
+      - image: amazon/aws-cli
+    steps: 
+      - checkout: 
+      - run: 
+        name: Create CloudFormatrion stack 
+        command: 
+          aws cloudformation deploy \
+           --template-file template.yml \
+           --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:7} \
+           --region us-east-1
+  smoke-test: 
+    docker:
+      - image: apline:latest
+    steps: 
+      - run: 
+          name: Test Job
+          command: return 1
+      - destroy-environment: 
+
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   say-hello-workflow:
     jobs:
-      - say-hello
+      - create-cloudformation-stack:
+          require: 
+            - smoke-test
+
