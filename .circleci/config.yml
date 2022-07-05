@@ -31,8 +31,8 @@ jobs:
       - run:
           name: Test Job
           command: return 1
-
       - destroy-environment
+        when: on_fail
 
    
 
